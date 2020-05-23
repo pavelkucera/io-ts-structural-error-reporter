@@ -1,0 +1,43 @@
+{
+  "name": "@pavelkucera/io-ts-structural-error-reporter",
+  "author": "Pavel Kucera",
+  "description": "Experiment: report io-ts errors structurally",
+  "license": "MIT",
+  "version": "0.0.0",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prettier": "prettier --config .prettierrc --check src/**/*.ts test/**/*.ts",
+    "prettier:fix": "npm run prettier -- --write",
+    "test": "jest",
+    "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pavelkucera/io-ts-structural-error-reporter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pavelkucera/io-ts-structural-error-reporter/issues"
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "dependencies": {},
+  "peerDependencies": {
+    "fp-ts": "^2.6.1",
+    "io-ts": "^2.2.2"
+  },
+  "devDependencies": {
+    "@types/jest": "25.2.1",
+    "@types/node": "13.11.1",
+    "fp-ts": "2.6.1",
+    "io-ts": "2.2.2",
+    "jest": "25.3.0",
+    "prettier": "2.0.4",
+    "ts-jest": "25.3.1",
+    "typescript": "3.9.2"
+  }
+}
