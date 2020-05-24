@@ -1,4 +1,4 @@
-import { decons } from '../src'
+import { decons } from '../src/ReadonlyArray'
 import { isNone, none, some } from 'fp-ts/lib/Option'
 
 describe('ReadonlyArray', () => {
