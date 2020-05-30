@@ -1,16 +1,10 @@
-import * as E from 'fp-ts/lib/Either';
-import * as R from 'fp-ts/lib/Record';
-import {Either} from 'fp-ts/lib/Either';
+import { Either } from 'fp-ts/lib/Either'
+import { ErrorReport, ErrorReportObject, Errors, InternalError } from './Types'
+import { internalError } from './Error'
+import * as E from 'fp-ts/lib/Either'
+import * as R from 'fp-ts/lib/Record'
 
-export type ErrorReportObject = {
-  [key: string]: ErrorReport
-}
-
-export type ErrorReport =
-  | string
-  | ErrorReportObject
-
-type Merged<A extends ErrorReportObject> = Either<string, A>
+type Merged<A extends ErrorReportObject> = Either<InternalError, A>
 
 export const mergeAtKey = (
   key: string,
@@ -23,22 +17,25 @@ export const mergeAtKey = (
 
       if (typeof childErrorReport == 'string') {
         if (existingChildErrorReport !== undefined) {
-          return E.left(`${key} is already defined`)
+          return internalError(Errors.DuplicateKey, key)
         }
 
         errorReport[key] = childErrorReport
         return E.right(errorReport)
+
       } else {
-        if (existingChildErrorReport === undefined) {
-          return E.left(`${key} is already defined`)
-        } else if (typeof existingChildErrorReport === 'string') {
+        if (typeof existingChildErrorReport === 'string') {
+          return internalError(Errors.IncompatibleErrorReports, key)
+
+        } else if (existingChildErrorReport === undefined) {
           errorReport[key] = childErrorReport
           return E.right(errorReport)
+
         } else {
           const merged = mergeErrorReports(existingChildErrorReport, childErrorReport)
 
-          return E.bimap<string, string, ErrorReportObject, ErrorReportObject>(
-            (error) => `${key}.${error}`,
+          return E.bimap<InternalError, InternalError, ErrorReportObject, ErrorReportObject>(
+            (error) => ({ type: error.type, message: `${key}: ${error.message}` }),
             (merged) => {
               errorReport[key] = merged
               return errorReport
@@ -49,5 +46,14 @@ export const mergeAtKey = (
     }
   )(errorReportResult)
 
-export const mergeErrorReports = (first: ErrorReportObject, second: ErrorReportObject): Merged<ErrorReportObject> =>
-  R.reduceRightWithIndex(E.right(first), mergeAtKey)(second)
+export const mergeErrorReports = (first: ErrorReport, second: ErrorReport): Merged<ErrorReportObject> => {
+  if (typeof first === 'string' && typeof second === 'string') {
+    return internalError(Errors.StringErrorReports, 'Cannot merge two string errors')
+  }
+
+  if (typeof first !== 'object' || typeof second !== 'object') {
+    return internalError(Errors.IncompatibleErrorReports, `Incompatible types: ${typeof first}, ${typeof second}`)
+  }
+
+  return R.reduceRightWithIndex(E.right(first), mergeAtKey)(second)
+}
