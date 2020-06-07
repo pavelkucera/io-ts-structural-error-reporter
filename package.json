@@ -9,7 +9,6 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "prettier": "prettier --config .prettierrc --check src/**/*.ts test/**/*.ts",
-    "prettier:fix": "npm run prettier -- --write",
     "test": "jest",
     "typecheck": "tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch"
