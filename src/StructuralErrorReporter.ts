@@ -1,15 +1,16 @@
 import { pipe } from 'fp-ts/lib/pipeable'
 import { ReadonlyNonEmptyArray } from 'fp-ts/lib/ReadonlyNonEmptyArray'
-import { mergeErrorReports } from './ErrorReport'
+import { mergeDifferentErrorReports } from './ErrorReport'
 import * as E from 'fp-ts/lib/Either'
 import * as RNEA from 'fp-ts/lib/ReadonlyNonEmptyArray'
 import * as t from 'io-ts'
-import { Reporter } from 'io-ts/lib/Reporter'
 import { isNonEmptyArray } from './ReadonlyArray'
 import { ErrorReport, Errors, InternalError, Report } from './Types'
-import { internalError } from './Error'
+import { panic } from './Error'
+import { Reporter } from 'io-ts/lib/Reporter'
 
 type ErrorContext = ReadonlyNonEmptyArray<t.ContextEntry>
+type ValidationError = t.ValidationError & { context: ErrorContext }
 
 /**
  * Composes error message reported for a specific validation failure. Uses
@@ -26,10 +27,10 @@ const composeErrorMessage = (defaultMessage: string | undefined, context: ErrorC
  * Builds an error report object for one validation failure based on the given
  * error message and context. Creates nested children as necessary.
  *
- * @param message
  * @param context
+ * @param message
  */
-const buildErrorReportObject = (message: string, context: ErrorContext): ErrorReport =>
+const buildErrorReportObject = (context: ErrorContext, message: string): ErrorReport =>
   pipe(
     context,
     RNEA.reduceRight(
@@ -41,61 +42,110 @@ const buildErrorReportObject = (message: string, context: ErrorContext): ErrorRe
   )
 
 /**
- * Creates an error report object for a validation error.
+ * Creates a full-path error object for a validation error. Full-path means
+ * that for record-codecs, the errors will be wrapped in a record with a single
+ * property with an empty name: { '': ... } as io-ts adds a "root" context
+ * entry to the error context.
  *
  * @param error
  */
-const createSingleErrorReport = (error: t.ValidationError): Report => {
-  if (!isNonEmptyArray(error.context)) {
-    return internalError(Errors.EmptyErrorContext, 'Empty error context')
-  }
-
+const createFullSingleErrorReport = (error: ValidationError): ErrorReport => {
   const errorMessage = composeErrorMessage(error.message, error.context)
-  const errorReport = buildErrorReportObject(errorMessage, error.context)
-
-  return E.right(errorReport)
+  return buildErrorReportObject(error.context, errorMessage)
 }
 
+const isValidationError = (validationError: t.ValidationError): validationError is ValidationError =>
+  isNonEmptyArray(validationError.context)
+
+const parseValidationError = (error: t.ValidationError): E.Either<InternalError, ValidationError> =>
+  isValidationError(error)
+    ? E.right(error)
+    : panic(Errors.EmptyErrorContext, 'Error contains empty erro context.')
+
 /**
- * Create an error report object for all validation errors.
+ * Creates an error report which is either a string or a record of error
+ * reports. It does not contain the root object.
+ *
+ * @param error
+ */
+const createSingleErrorReport = (error: t.ValidationError): Report =>
+  pipe(
+    error,
+    parseValidationError,
+    E.map(createFullSingleErrorReport),
+    E.fold(
+      error => E.left(error),
+      (fullErrorReport): Report => {
+        if (typeof fullErrorReport === 'string') {
+          return E.right(fullErrorReport)
+        }
+
+        return Object.keys(fullErrorReport).length !== 1 || !fullErrorReport.hasOwnProperty('')
+          ? panic(Errors.UnexpectedErrorReportShape, 'Root record error report should only contain property "" (empty string).')
+          : E.right(fullErrorReport[''])
+      }
+    )
+  )
+
+/**
+ * Merges two reports, taking care of propagating nested internal errors.
+ *
+ * @param first
+ * @param second
+ */
+const mergeReports = (first: Report, second: Report): Report =>
+  // I miss monads.
+  pipe(
+    first,
+    E.fold<InternalError, ErrorReport, Report>(
+      error1 => pipe(
+        second,
+        E.fold<InternalError, ErrorReport, Report>(
+          // Two internal errors happened at once.
+          error2 => panic(Errors.MultipleFailures, 'Multiple internal errors appeared at once.', [error1, error2]),
+
+          // Only first report contains an internal error.
+          _ => E.left(error1)
+        )
+      ),
+      result1 => pipe(
+        second,
+        E.fold<InternalError, ErrorReport, Report>(
+          // Only second report contains an internal error.
+          error2 => E.left(error2),
+
+          // No internal error occurred.
+          result2 => mergeDifferentErrorReports(result1, result2),
+        )
+      )
+    )
+  )
+
+
+/**
+ * Creates a full error report for a list of validation errors.
  *
  * @param errors
  */
 export const createErrorReport = (errors: t.Errors): Report => {
   if (!isNonEmptyArray(errors)) {
-    return internalError(Errors.EmptyErrorList, 'Empty error list')
+    return panic(Errors.EmptyErrorList, 'Cannot build error report from an empty error list.');
   }
 
   return pipe(
     errors,
-    pipe(
-      createSingleErrorReport,
-      RNEA.foldMap({
-        concat: (first: Report, second: Report): Report =>
-          E.fold(
-            (error1: InternalError) =>
-              E.fold(
-                (error2: InternalError) =>
-                  internalError<ErrorReport>(Errors.MultipleErrors, `Multiple: ${error1}, ${error2}`),
-                () => E.left(error1)
-              )(second),
-            (errorReport1: ErrorReport) =>
-              E.fold(
-                (error2: InternalError) => E.left(error2),
-                (errorReport2: ErrorReport) => mergeErrorReports(errorReport1, errorReport2)
-              )(second)
-          )(first),
-      })
-    ),
+    RNEA.map(createSingleErrorReport),
+    RNEA.fold({
+      concat: mergeReports,
+    })
   )
 }
 
-const reportFailure = (errors: t.Errors): Report =>
-  createErrorReport(errors)
-
-const reportSuccess = (): Report =>
-  internalError(Errors.ValidResult, 'No errors')
-
 export const StructuralErrorReporter: Reporter<Report> = {
-  report: E.fold(reportFailure, reportSuccess),
+  report: E.fold(
+    createErrorReport,
+    // This might be a confusing error. However, the reporter should be used
+    // only if the result is invalid and hence the error.
+    () => panic(Errors.ResultIsValid, 'Result is valid, there are no errors to report.')
+  )
 }

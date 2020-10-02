@@ -11,7 +11,7 @@ describe('StructuralErrorReporter', () => {
 
       expectLeft(
         {
-          type: Errors.ValidResult,
+          type: Errors.ResultIsValid,
         },
         result
       )
@@ -53,6 +53,11 @@ describe('StructuralErrorReporter', () => {
         value: undefined,
         context: [
           {
+            actual: {key: undefined},
+            type: t.type({key: t.string}),
+            key: '',
+          },
+          {
             actual: undefined,
             type: t.string,
             key: 'key',
@@ -65,7 +70,7 @@ describe('StructuralErrorReporter', () => {
 
       expectLeft(
         {
-          type: Errors.DuplicateKey,
+          type: Errors.DuplicateErrorReportKey,
         },
         result
       )
@@ -73,9 +78,8 @@ describe('StructuralErrorReporter', () => {
   })
 
   it('Creates error report for non-record codecs', () => {
-    expectRight({ '': 'Expecting "string".' }, StructuralErrorReporter.report(t.string.decode(42)))
-
-    expectRight({ '': 'Expecting "Array<number>".' }, StructuralErrorReporter.report(t.array(t.number).decode(42)))
+    expectRight('Expecting "string".', StructuralErrorReporter.report(t.string.decode(42)))
+    expectRight('Expecting "Array<number>".', StructuralErrorReporter.report(t.array(t.number).decode(42)))
   })
 
   it('Creates error report for record codecs', () => {
@@ -100,14 +104,12 @@ describe('StructuralErrorReporter', () => {
     const errorReport = StructuralErrorReporter.report(validationResult)
     expectRight(
       {
-        '': {
-          number: 'Expecting "number".',
-          list: {
-            '0': 'Expecting "string".',
-          },
-          deep: {
-            deeper: 'Expecting "string".',
-          },
+        number: 'Expecting "number".',
+        list: {
+          '0': 'Expecting "string".',
+        },
+        deep: {
+          deeper: 'Expecting "string".',
         },
       },
       errorReport

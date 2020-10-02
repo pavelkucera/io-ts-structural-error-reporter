@@ -13,14 +13,16 @@ export type Report = Either<InternalError, ErrorReport>
 export type InternalError = {
   type: symbol
   message: string
+  previous: InternalError[]
 }
 
 export const Errors = {
-  DuplicateKey: Symbol('Duplicate key'),
+  DuplicateErrorReportKey: Symbol('Duplicate error report key'),
   EmptyErrorContext: Symbol('Empty error context'),
   EmptyErrorList: Symbol('Empty error list'),
-  IncompatibleErrorReports: Symbol('Incompatible error reports'),
-  MultipleErrors: Symbol('Multiple errors'),
-  StringErrorReports: Symbol('String error reports'),
-  ValidResult: Symbol('Valid result'),
+  IncompatibleErrorReportTypes: Symbol('Incompatible error report types'),
+  MultipleFailures: Symbol('Multiple failures'),
+  MultipleStringErrorReports: Symbol('Multiple string error reports'),
+  UnexpectedErrorReportShape: Symbol('Unexpected error report shape'),
+  ResultIsValid: Symbol('Result is valid'),
 }
