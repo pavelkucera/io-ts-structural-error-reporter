@@ -6,7 +6,9 @@ The library is motivated by a desire to use `io-ts` to validate a REST API's JSO
 
 # Installation
 
-TODO
+```shell script
+npm install --save-exact @pavelkucera/io-ts-structural-error-reporter
+```
 
 # Usage
 
