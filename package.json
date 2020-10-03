@@ -3,7 +3,7 @@
   "author": "Pavel Kucera",
   "description": "Experiment: report io-ts errors structurally",
   "license": "MIT",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
