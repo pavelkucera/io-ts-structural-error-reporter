@@ -60,7 +60,7 @@ const isValidationError = (validationError: t.ValidationError): validationError 
 const parseValidationError = (error: t.ValidationError): E.Either<InternalError, ValidationError> =>
   isValidationError(error)
     ? E.right(error)
-    : panic(Errors.EmptyErrorContext, 'Error contains empty erro context.')
+    : panic(Errors.EmptyErrorContext, 'Error contains empty error context.')
 
 /**
  * Creates an error report which is either a string or a record of error
