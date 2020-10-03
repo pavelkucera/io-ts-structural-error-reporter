@@ -1,12 +1,12 @@
 import { Either } from 'fp-ts/lib/Either'
 
-export type ErrorReportObject = {
+export type ErrorReportRecord = {
   [key: string]: ErrorReport
 }
 
 export type ErrorReport =
   | string
-  | ErrorReportObject
+  | ErrorReportRecord
 
 export type Report = Either<InternalError, ErrorReport>
 

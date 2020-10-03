@@ -1,22 +1,22 @@
 import { Either } from 'fp-ts/lib/Either'
-import { ErrorReport, ErrorReportObject, Errors, InternalError } from './Types'
+import { ErrorReport, ErrorReportRecord, Errors, InternalError } from './Types'
 import { panic } from './Error'
 import * as E from 'fp-ts/lib/Either'
 import * as R from 'fp-ts/lib/Record'
 import * as t from 'io-ts';
 import { pipe } from 'fp-ts/lib/pipeable'
 
-type Merged<A extends ErrorReportObject> = Either<InternalError, A>
+type Merged<A extends ErrorReportRecord> = Either<InternalError, A>
 
 export const mergeAtKey = (
   key: string,
-  errorReportResult: Merged<ErrorReportObject>,
+  errorReportResult: Merged<ErrorReportRecord>,
   childErrorReport: ErrorReport
-): Merged<ErrorReportObject> =>
+): Merged<ErrorReportRecord> =>
   pipe(
     errorReportResult,
     E.chain(
-      (errorReport: ErrorReportObject): Merged<ErrorReportObject> => {
+      (errorReport: ErrorReportRecord): Merged<ErrorReportRecord> => {
         const existingChildErrorReport = errorReport[key]
 
         if (typeof childErrorReport == 'string') {
@@ -38,7 +38,7 @@ export const mergeAtKey = (
           } else {
             return pipe(
               mergeDifferentErrorReports(existingChildErrorReport, childErrorReport),
-              E.bimap<InternalError, InternalError, ErrorReportObject, ErrorReportObject>(
+              E.bimap<InternalError, InternalError, ErrorReportRecord, ErrorReportRecord>(
                 t.identity,
                 (merged) => {
                   errorReport[key] = merged
@@ -59,7 +59,7 @@ export const mergeAtKey = (
  * @param first
  * @param second
  */
-export const mergeDifferentErrorReports = (first: ErrorReport, second: ErrorReport): Merged<ErrorReportObject> => {
+export const mergeDifferentErrorReports = (first: ErrorReport, second: ErrorReport): Merged<ErrorReportRecord> => {
   if (typeof first === 'string' && typeof second === 'string') {
     return panic(Errors.MultipleStringErrorReports, 'Cannot merge two string errors.')
   }
