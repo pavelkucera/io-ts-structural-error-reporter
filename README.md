@@ -73,3 +73,12 @@ console.log(structrualErrorReport);
 //   },
 // }
 ```
+
+## Error Messages
+
+If the codec [defines its own error message](https://github.com/gcanti/io-ts/blob/master/index.md#custom-error-messages), the library will use that error message.
+Otherwise, a default error message will be used.
+The default error message is in format:
+```
+Expecting: "<name of the codec>".
+```
