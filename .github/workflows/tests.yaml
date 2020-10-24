@@ -1,9 +1,9 @@
-name: CI
+name: Tests
 
 on: [push, pull_request]
 
 jobs:
-  typecheck:
+  Typecheck:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -17,7 +17,7 @@ jobs:
       - name: Typecheck
         run: npm run -s typecheck
 
-  tests:
+  Tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
