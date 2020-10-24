@@ -12,7 +12,16 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 12
+      - name: Cache dependencies
+        id: cache-dependencies
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-typecheck-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
       - name: Install dependencies
+        if: steps.cache-dependencies.outputs.cache-hit != 'true'
         run: npm ci
       - name: Typecheck
         run: npm run -s typecheck
@@ -31,7 +40,17 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
+      - name: Cache dependencies
+        id: cache-dependencies
+        uses: actions/cache@v2
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-tests-${{ matrix.node }}-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+
       - name: Install dependencies
+        if: steps.cache-dependencies.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: Tests
