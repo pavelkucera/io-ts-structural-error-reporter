@@ -1,7 +1,7 @@
 {
   "name": "@pavelkucera/io-ts-structural-error-reporter",
   "author": "Pavel Kucera",
-  "description": "Experiment: report io-ts errors structurally",
+  "description": "Report io-ts errors using the structure of the underlying validators",
   "license": "MIT",
   "version": "0.1.0",
   "main": "lib/index.js",
